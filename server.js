@@ -22,8 +22,9 @@ MongoClient.connect('mongodb://' + mongoUrl + '/' + dbName, function (err, db) {
     } else {
         console.log(' Successfully connected to mongo ');
 
-        app.all('/', function (req, res) {
+        app.all('/', (req, res)=> {
             console.log('A request is received in default url  ');
+
             sendResponse(res, 'Welcome  default url write');
 
             /*find and modify and get the updated record in callback ..
@@ -75,10 +76,15 @@ MongoClient.connect('mongodb://' + mongoUrl + '/' + dbName, function (err, db) {
                 password: password
             };
             if (username && password) {
-                insert(db, usersTable, recordToInsert, {res: res}, function (result) {
-                    console.log(JSON.stringify(result, null, ' '));
-                    sendResponse(res, {message: 'Signup Successfully'});
-                })
+                checkUserExistence(db, username).then(()=> {
+                    insert(db, usersTable, recordToInsert, {res: res}, function (result) {
+                        console.log(JSON.stringify(result, null, ' '));
+                        sendResponse(res, {message: 'Signup Successfully'});
+                    })
+                }).catch((e)=> {
+                    console.log('error in checkc user existence '+e);
+                    sendError(res, e.message)
+                });
             } else {
                 sendError(res, 'Username password are mandatory for Signup')
             }
@@ -106,8 +112,8 @@ MongoClient.connect('mongodb://' + mongoUrl + '/' + dbName, function (err, db) {
             console.log('Query >> .....req.body is -- !' + JSON.stringify(req.body));
             var dataset = req.body.dataset;
             /*this parsing is error prone*/
-            console.log('dataset'+JSON.stringify(dataset));
-            dataset =JSON.parse(dataset);
+            console.log('dataset' + JSON.stringify(dataset));
+            dataset = JSON.parse(dataset);
 
             var token = req.body.token;
             var args = req.body.args;
@@ -118,15 +124,15 @@ MongoClient.connect('mongodb://' + mongoUrl + '/' + dbName, function (err, db) {
 
 
             if (token && dataset && dataset.type) {
-                validateToken(db,token).then(()=> {
+                validateToken(db, token).then(()=> {
                     console.log('token validation Success');
                     find(db, dataset.type, {}, undefined, function (docs) {
                         sendResponse(res, {data: docs})
 
                     })
                 }).catch((e)=> {
-                    console.log('token validation failed'+e);
-                    sendError(res,e)
+                    console.log('token validation failed' + e);
+                    sendError(res, e)
                 })
 
             } else {
@@ -151,6 +157,20 @@ MongoClient.connect('mongodb://' + mongoUrl + '/' + dbName, function (err, db) {
 //     other info 
 // }
 /* functions for mongo interactions---->>*/
+var checkUserExistence = (db, username)=> {
+    return new Promise((resolve, reject)=> {
+
+        find(db, usersTable, {username}, undefined, (docs)=> {
+            if (docs.length > 0) {
+                /*success*/
+                reject(new Error('Username already taken'));
+            } else {
+                resolve({res: 'Username Available'});
+            }
+        }, err=> reject(err));
+
+    })
+};
 var validateToken = function (db, token) {
     return new Promise((resolve, reject)=> {
 
@@ -255,10 +275,10 @@ var findAndModify = function (db, collectionName, query, sort, updates, options,
 
 /* functions dealing with response .. */
 var sendError = function (res, errorMessage) {
-    console.log('Error message in sendError '+errorMessage.message);
+    //console.log('Error message in sendError ' + errorMessage);
     if (res) {
         var errorObj = typeof errorMessage == 'string' ? {message: errorMessage} : errorMessage;
-        console.log('errorObj'+errorObj);
+        console.log('errorObj' + errorObj);
         res.write(JSON.stringify({error: errorObj}));
         res.status(400);
         res.end();
