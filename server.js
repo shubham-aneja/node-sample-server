@@ -11,7 +11,6 @@ var methodOverride = require('method-override');
 var assert = require('assert');
 var usersTable = 'users';
 var tokenTable = 'Connections';
-var q = require('q');
 app.use(bodyParser.json()); // support json encoded bodies
 app.use(bodyParser.urlencoded({extended: true})); // support encoded bodies
 
@@ -41,105 +40,113 @@ MongoClient.connect('mongodb://' + mongoUrl + '/' + dbName, function (err, db) {
         });
 
         app.all('/login', function (req, res) {
-            console.log('Welcome to login .....req.body is -- !' + JSON.stringify(req.body));
-            var username = req.body.username;
-            var password = req.body.password;
-            if (username && password) {
-                find(db, usersTable, {username: username, password: password}, {res: res}, function (docs) {
+            var user = undefined;
+            getMergedParameters(req)
+                .then((mergedParams)=> {
+                    // console.log('Welcome to login .....merged params are :-- -- !' + JSON.stringify(mergedParams));
+                    var userName = mergedParams.username;
+                    var password = mergedParams.password;
+                    if (!userName || !password) {
+                        throw new Error('Username and password are mandatory')
+                    }
+                    return find(db, usersTable, {username: mergedParams.username, password: mergedParams.password})
+                }).then((docs)=> {
                     if (docs.length === 0) {
                         console.log('login -- no user found .....!');
-                        sendError(res, 'Username password did not match');
+                        throw new Error('Username password did not match');
                     } else {
-                        /*create a token and return */
-                        // console.log('Login :  user -->'+JSON.stringify(docs[0], null, ' '));
-                        insert(db, tokenTable, {user: docs[0]}, {res: res}, function (result) {
-                            var responseToReturn = {
-                                user: docs[0]
-
-                            }
-                            responseToReturn.user.token = result.insertedIds[0];
-                            sendResponse(res, {data: responseToReturn});
-                        })
+                        user = docs[0];
+                        return insert(db, tokenTable, {user: docs[0]}, {res: res})
                     }
+                }).then((result)=> {
+                    var responseToReturn = {
+                        user: user
+                    }
+                    responseToReturn.user.token = result.insertedIds[0];
+                    sendResponse(res, {data: responseToReturn});
+                }).catch((e)=> {
+                    console.log('Login Error :- ' + e.stack)
+                    sendError(res, e.message)
                 })
-            } else {
-                sendError(res, 'Username and password are mandatory')
-            }
         });
+
 
         app.all('/signup', function (req, res) {
             // console.log('Welcome to signup req.body ' + JSON.stringify(req.body));
-            var username = req.body.username;
-            var password = req.body.password;
-            var recordToInsert = {
-                username: username,
-                password: password
-            };
-            if (username && password) {
-                checkUserExistence(db, username).then(()=> {
-                    insert(db, usersTable, recordToInsert, {res: res}, function (result) {
-                        console.log(JSON.stringify(result, null, ' '));
-                        sendResponse(res, {message: 'Signup Successfully'});
-                    })
+            var recordToInsert = undefined;
+            getMergedParameters(req)
+                .then((mergedParams)=> {
+                    var username = mergedParams.username;
+                    var password = mergedParams.password;
+                    recordToInsert = {
+                        username: username,
+                        password: password
+                    }
+                    if (!username || !password) {
+                        throw new Error('Username and password are mandatory for Signup');
+                    }
+
+                    return checkUserExistence(db, username)
+                }).then(()=> {
+                    return insert(db, usersTable, recordToInsert, {res: res})
+                }).then(()=> {
+                    return sendResponse(res, {message: 'Signup Successfully'});
                 }).catch((e)=> {
-                    console.log('error in checkc user existence '+e);
+                    console.log('Signup Error :- ' + e.stack)
                     sendError(res, e.message)
-                });
-            } else {
-                sendError(res, 'Username password are mandatory for Signup')
-            }
+                })
+
         });
 
         app.all('/logout', function (req, res) {
-            console.log('Welcome to logout req.body ' + JSON.stringify(req.body));
-            var token = req.body.token;
-
-            if (token) {
-                var query = {_id: ObjectID(token)};
-                var options = {justOne: true};
-                remove(db, tokenTable, query, options, {res: res}, function (result) {
-                    console.log('Logout response -- ' + JSON.stringify(result, null, ' '));
+            getMergedParameters(req).
+                then((mergedParams)=> {
+                    console.log('Welcome to logout mergedParams ' + JSON.stringify(mergedParams));
+                    var token = mergedParams.token;
+                    var query = {_id: ObjectID(token)};
+                    var options = {justOne: true};
+                    return remove(db, tokenTable, query, options, {res: res})
+                }).then(()=> {
                     sendResponse(res, {message: 'Successfully logged out'})
+                }).catch((e)=> {
+                    console.log('Error in logout ..' + e.stack);
+                    sendError(res, e.message)
                 })
-            } else {
-                //sendError(res, 'Token is mandatory for logout')
-                /*dont why to throw error or not*/
-            }
         });
 
 
         app.all('/query', function (req, res) {
-            console.log('Query >> .....req.body is -- !' + JSON.stringify(req.body));
-            var dataset = req.body.dataset;
-            /*this parsing is error prone*/
-            console.log('dataset' + JSON.stringify(dataset));
-            dataset = JSON.parse(dataset);
+            var dataset = undefined;
+            getMergedParameters(req).
+                then((mergedParams)=> {
+                    console.log('in /query call. >> .....mergedParams -- !' + JSON.stringify(mergedParams));
+                    dataset = mergedParams.dataset;
+                    // console.log('in /query call. >> .....dataset -- !' , dataset);
 
-            var token = req.body.token;
-            var args = req.body.args;
-            // {dataset,token,args:{limit:5}}
-            var query = {/*from  args.filter */};
-            var limit = {}
-            /*parse the aguments  */
-
-
-            if (token && dataset && dataset.type) {
-                validateToken(db, token).then(()=> {
+                    var token = mergedParams.token;
+                    var args = mergedParams.args;
+                    dataset = dataset && JSON.parse(dataset);
+                    if (token && dataset && dataset.type) {
+                        /*this parsing is error prone*/
+                        // console.log('dataset' + JSON.stringify(dataset));
+                        // {dataset,token,args:{limit:5}}
+                        var query = {/*from  args.filter */};
+                        var limit = {}
+                        /*parse the aguments  */
+                        return validateToken(db, token)
+                    } else {
+                        throw new Error('Token and dataset and dataset type are mandatory for Query');
+                    }
+                }).then(()=> {
                     console.log('token validation Success');
-                    find(db, dataset.type, {}, undefined, function (docs) {
-                        sendResponse(res, {data: docs})
-
-                    })
+                    return find(db, dataset.type, {});
+                }).then((docs)=> {
+                    return sendResponse(res, {data: docs});
                 }).catch((e)=> {
-                    console.log('token validation failed' + e);
-                    sendError(res, e)
+                    console.log('Error in query call ..' + e.stack);
+                    sendError(res, e.message)
                 })
-
-            } else {
-                sendError(res, 'Token and dataset are mandatory for Query')
-            }
         });
-
 
         app.listen(serverPort, function () {
             console.log(serverPort + ' port is ready to be listen')
@@ -147,83 +154,83 @@ MongoClient.connect('mongodb://' + mongoUrl + '/' + dbName, function (err, db) {
     }
 });
 
-// response :{
-//     data:responseData,
-//     error:error,
-//     message:anyResponseMessage
-// }
-// error :{
-//     message:errorMessag e,
-//     other info 
-// }
-/* functions for mongo interactions---->>*/
+/*network call related functions */
+// returning promise since we want all our code to be written in then and catch to catch all the errors 
+// in catch phrase .. so if one function is returning promise then other need not to return promise for 
+// then and catch 
+const getMergedParameters = (req)=> {
+    var query = req.query;
+    var params = req.params;
+    var body = req.body;
+    var mergedParams = {};
+    for (var key in params) {
+        mergedParams[key] = params[key];
+    }
+    for (var key in body) {
+        if (mergedParams[key] === undefined) {
+            mergedParams[key] = body[key];
+        }
+    }
+    for (var key in query) {
+        if (mergedParams[key] === undefined) {
+            mergedParams[key] = query[key];
+        }
+    }
+    return new Promise((resolve)=> {
+        resolve(mergedParams)
+    });
+}
+
 var checkUserExistence = (db, username)=> {
     return new Promise((resolve, reject)=> {
 
-        find(db, usersTable, {username}, undefined, (docs)=> {
+        find(db, usersTable, {username}).then((docs)=> {
             if (docs.length > 0) {
-                /*success*/
                 reject(new Error('Username already taken'));
             } else {
                 resolve({res: 'Username Available'});
             }
-        }, err=> reject(err));
-
+        });
     })
 };
 var validateToken = function (db, token) {
     return new Promise((resolve, reject)=> {
-
-        find(db, tokenTable, {_id: ObjectID(token)}, undefined, function (docs) {
+        find(db, tokenTable, {_id: ObjectID(token)}).then((docs)=> {
             if (docs.length === 1) {
-                /*success*/
                 resolve({res: 'Token Validated'});
             } else {
                 reject(new Error('Invalid Token'));
             }
-        }, function (err) {
-            reject(err);
-        });
-
+        })
     })
-}
-var validateToken1 = function (db, token) {
-    var promise = q.defer();
+};
 
-    find(db, tokenTable, {_id: ObjectID(token)}, undefined, function (docs) {
-        if (docs.length === 1) {
-            /*success*/
-            promise.resolve({res: 'Token Validated'});
-        } else {
-            promise.reject(new Error('Invalid Token'));
-
-        }
-    }, function (err) {
-        promise.reject(err);
-    })
-}
-var find = function (db, collectionName, query, options, onSuccess, onFailure) {
+var find = function (db, collectionName, query, options) {
     options = options || {};
-    return db.collection(collectionName).find(query).toArray(function (err, docs) {
-        //console.log('find is executing .. Collection :- '+collectionName+'  and query :- '+JSON.stringify(query,null,' '));
-        if (err) {
-            onFailure ? onFailure(err) : sendError(options.res, err);
-        } else {
-            onSuccess(docs);
-        }
-    });
+    return new Promise((resolve, reject)=> {
+
+        db.collection(collectionName).find(query).toArray(function (err, docs) {
+            //console.log('find is executing .. Collection :- '+collectionName+'  and query :- '+JSON.stringify(query,null,' '));
+            if (err) {
+                reject(err);
+            } else {
+                resolve(docs);
+            }
+
+        });
+    })
 }
 
 
-var insert = function (db, collectionName, recordToInsert, options, onSuccess) {
-    db.collection(collectionName).insert(recordToInsert, function (err, result) {
-        if (err) {
-            console.log('insert :- error ' + err.message);
-            sendError(options.res, err);
-        } else {
-            console.log('insert :- result ' + JSON.stringify(result));
-            onSuccess(result)
-        }
+var insert = function (db, collectionName, recordToInsert, options) {
+    return new Promise((resolve, reject)=> {
+        db.collection(collectionName).insert(recordToInsert, function (err, result) {
+            if (err) {
+                reject(err)
+            } else {
+                resolve(result)
+            }
+        })
     })
 }
 
@@ -234,16 +241,16 @@ var update = function (db, collectionName, query, updates, options, callback) {
 
 }
 
-var remove = function (db, collectionName, query, removeOptions, options, onSuccess) {
-    db.collection(collectionName).remove(query, removeOptions, function (err, result) {
-        if (err) {
-            sendError(options.res, err);
-        } else {
-            console.log('remove response -- ' + JSON.stringify(result, null, ' '));
-            onSuccess(result);
-        }
+var remove = function (db, collectionName, query, removeOptions, options) {
+    return new Promise((resolve, reject)=> {
+        db.collection(collectionName).remove(query, removeOptions, function (err, result) {
+            if (err) {
+                reject(err);
+            } else {
+                resolve(result);
+            }
+        })
     })
-    // db.collection(collectionName).remove(query,{justOne: <boolean>,writeConcern: <document>})
 }
 
 
@@ -294,3 +301,5 @@ var sendResponse = function (res, responseToSend) {
 }
 
 
+//login ko get call se check karo
+//  /invoke/* se start wala part kese lete h
