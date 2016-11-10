@@ -21,7 +21,9 @@ var networkUtility = require('./networkUtility');
 const getMergedParameters = networkUtility.getMergedParameters;
 const sendResponse = networkUtility.sendResponse;
 const sendError = networkUtility.sendError;
-
+var utility = require('./utility');
+const validateToken = utility.validateToken ;
+const checkUserExistence = utility.checkUserExistence ;
 MongoClient.connect('mongodb://' + mongoUrl + '/' + dbName, function (err, db) {
     if (err) {
         console.log('connection to mongo failed ');
@@ -162,29 +164,7 @@ MongoClient.connect('mongodb://' + mongoUrl + '/' + dbName, function (err, db) {
 });
 
 
-var checkUserExistence = (db, username)=> {
-    return new Promise((resolve, reject)=> {
 
-        mongoFind(db, usersTable, {username}).then((docs)=> {
-            if (docs.length > 0) {
-                reject(new Error('Username already taken'));
-            } else {
-                resolve({res: 'Username Available'});
-            }
-        });
-    })
-};
-var validateToken = function (db, token) {
-    return new Promise((resolve, reject)=> {
-        mongoFind(db, tokenTable, {_id: ObjectID(token)}).then((docs)=> {
-            if (docs.length === 1) {
-                resolve({res: 'Token Validated'});
-            } else {
-                reject(new Error('Invalid Token'));
-            }
-        })
-    })
-};
 
 
 
