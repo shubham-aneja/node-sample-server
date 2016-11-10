@@ -13,7 +13,14 @@ var usersTable = 'users';
 var tokenTable = 'Connections';
 app.use(bodyParser.json()); // support json encoded bodies
 app.use(bodyParser.urlencoded({extended: true})); // support encoded bodies
-
+var mongoUtility = require('./mongoUtility')
+var mongoFind = mongoUtility.mongoFind;
+var mongoRemove = mongoUtility.mongoRemove;
+var mongoInsert = mongoUtility.mongoInsert;
+var networkUtility = require('./networkUtility');
+const getMergedParameters = networkUtility.getMergedParameters;
+const sendResponse = networkUtility.sendResponse;
+const sendError = networkUtility.sendError;
 
 MongoClient.connect('mongodb://' + mongoUrl + '/' + dbName, function (err, db) {
     if (err) {
@@ -49,14 +56,14 @@ MongoClient.connect('mongodb://' + mongoUrl + '/' + dbName, function (err, db) {
                     if (!userName || !password) {
                         throw new Error('Username and password are mandatory')
                     }
-                    return find(db, usersTable, {username: mergedParams.username, password: mergedParams.password})
+                    return mongoFind(db, usersTable, {username: mergedParams.username, password: mergedParams.password})
                 }).then((docs)=> {
                     if (docs.length === 0) {
                         console.log('login -- no user found .....!');
                         throw new Error('Username password did not match');
                     } else {
                         user = docs[0];
-                        return insert(db, tokenTable, {user: docs[0]}, {res: res})
+                        return  mongoInsert(db, tokenTable, {user: docs[0]}, {res: res})
                     }
                 }).then((result)=> {
                     var responseToReturn = {
@@ -88,7 +95,7 @@ MongoClient.connect('mongodb://' + mongoUrl + '/' + dbName, function (err, db) {
 
                     return checkUserExistence(db, username)
                 }).then(()=> {
-                    return insert(db, usersTable, recordToInsert, {res: res})
+                    return mongoInsert(db, usersTable, recordToInsert, {res: res})
                 }).then(()=> {
                     return sendResponse(res, {message: 'Signup Successfully'});
                 }).catch((e)=> {
@@ -105,7 +112,7 @@ MongoClient.connect('mongodb://' + mongoUrl + '/' + dbName, function (err, db) {
                     var token = mergedParams.token;
                     var query = {_id: ObjectID(token)};
                     var options = {justOne: true};
-                    return remove(db, tokenTable, query, options, {res: res})
+                    return mongoRemove(db, tokenTable, query, options, {res: res})
                 }).then(()=> {
                     sendResponse(res, {message: 'Successfully logged out'})
                 }).catch((e)=> {
@@ -139,7 +146,7 @@ MongoClient.connect('mongodb://' + mongoUrl + '/' + dbName, function (err, db) {
                     }
                 }).then(()=> {
                     console.log('token validation Success');
-                    return find(db, dataset.type, {});
+                    return mongoFind(db, dataset.type, {});
                 }).then((docs)=> {
                     return sendResponse(res, {data: docs});
                 }).catch((e)=> {
@@ -154,37 +161,11 @@ MongoClient.connect('mongodb://' + mongoUrl + '/' + dbName, function (err, db) {
     }
 });
 
-/*network call related functions */
-// returning promise since we want all our code to be written in then and catch to catch all the errors 
-// in catch phrase .. so if one function is returning promise then other need not to return promise for 
-// then and catch 
-const getMergedParameters = (req)=> {
-    var query = req.query;
-    var params = req.params;
-    var body = req.body;
-    var mergedParams = {};
-    for (var key in params) {
-        mergedParams[key] = params[key];
-    }
-    for (var key in body) {
-        if (mergedParams[key] === undefined) {
-            mergedParams[key] = body[key];
-        }
-    }
-    for (var key in query) {
-        if (mergedParams[key] === undefined) {
-            mergedParams[key] = query[key];
-        }
-    }
-    return new Promise((resolve)=> {
-        resolve(mergedParams)
-    });
-}
 
 var checkUserExistence = (db, username)=> {
     return new Promise((resolve, reject)=> {
 
-        find(db, usersTable, {username}).then((docs)=> {
+        mongoFind(db, usersTable, {username}).then((docs)=> {
             if (docs.length > 0) {
                 reject(new Error('Username already taken'));
             } else {
@@ -195,7 +176,7 @@ var checkUserExistence = (db, username)=> {
 };
 var validateToken = function (db, token) {
     return new Promise((resolve, reject)=> {
-        find(db, tokenTable, {_id: ObjectID(token)}).then((docs)=> {
+        mongoFind(db, tokenTable, {_id: ObjectID(token)}).then((docs)=> {
             if (docs.length === 1) {
                 resolve({res: 'Token Validated'});
             } else {
@@ -205,101 +186,7 @@ var validateToken = function (db, token) {
     })
 };
 
-var find = function (db, collectionName, query, options) {
-    options = options || {};
-    return new Promise((resolve, reject)=> {
-
-        db.collection(collectionName).find(query).toArray(function (err, docs) {
-            //console.log('find is executing .. Collection :- '+collectionName+'  and query :- '+JSON.stringify(query,null,' '));
-            if (err) {
-                reject(err);
-            } else {
-                resolve(docs);
-            }
-
-        });
-    })
-}
 
 
-var insert = function (db, collectionName, recordToInsert, options) {
-    return new Promise((resolve, reject)=> {
-        db.collection(collectionName).insert(recordToInsert, function (err, result) {
-            if (err) {
-                reject(err)
-            } else {
-                resolve(result)
-            }
-        })
-    })
-}
 
-var update = function (db, collectionName, query, updates, options, callback) {
-    db.collection(collectionName).update(query, updates, options, callback)
-    // > db.a.update({_id:2},{$set:{name:'b'}})
-    // > db.a.update({_id:2},{$unset:{name:'b'}})
-
-}
-
-var remove = function (db, collectionName, query, removeOptions, options) {
-    return new Promise((resolve, reject)=> {
-        db.collection(collectionName).remove(query, removeOptions, function (err, result) {
-            if (err) {
-                reject(err);
-            } else {
-                resolve(result);
-            }
-        })
-    })
-}
-
-
-var findAndModify = function (db, collectionName, query, sort, updates, options, onSuccess) {
-    /*options :{new:true}*/
-    /*Options
-     w, {Number/String, > -1 || ‘majority’ || tag name} the write concern for the operation where &lt; 1 is no acknowlegement of write and w >= 1, w = ‘majority’ or tag acknowledges the write
-     wtimeout, {Number, 0} set the timeout for waiting for write concern to finish (combines with w option)
-
-     fsync, (Boolean, default:false) write waits for fsync before returning, from MongoDB 2.6 on, fsync cannot be combined with journal
-
-     j, (Boolean, default:false) write waits for journal sync before returning
-
-     remove {Boolean, default:false}, set to true to remove the object before returning.
-
-     upsert {Boolean, default:false}, perform an upsert operation.
-
-     new {Boolean, default:false}, set to true if you want to return the modified object rather than the original. Ignored for remove.
-     */
-    db.collection(collectionName).findAndModify(query, sort, updates, options, function (err, result) {
-        if (err) {
-            sendError(options.res, err);
-        } else {
-            onSuccess(result);
-        }
-    })
-}
-
-
-/* functions dealing with response .. */
-var sendError = function (res, errorMessage) {
-    //console.log('Error message in sendError ' + errorMessage);
-    if (res) {
-        var errorObj = typeof errorMessage == 'string' ? {message: errorMessage} : errorMessage;
-        console.log('errorObj' + errorObj);
-        res.write(JSON.stringify({error: errorObj}));
-        res.status(400);
-        res.end();
-    }
-}
-var sendResponse = function (res, responseToSend) {
-    if (res) {
-
-        responseToSend = typeof responseToSend == 'string' ? responseToSend : JSON.stringify(responseToSend);
-        res.write(responseToSend);
-        res.end();
-    }
-}
-
-
-//login ko get call se check karo
 //  /invoke/* se start wala part kese lete h
