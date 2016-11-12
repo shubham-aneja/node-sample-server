@@ -165,12 +165,16 @@ getMongoConnection(mongoUrl ,dbName, function (err, db) {
 });
 
 //es 6 is not working .. not import not let not s...
-// query me aai _id ko kese parse kare
-//mongo cliecnt connect .. into seprate function 
-// merged params promise na de to acha h 
 
-// update ka function jo return me new object return kare 
-//  /invoke/* se start wala part kese lete h
-// config ki file banao
-// when to connect to db
+// update data ka function jo return me new object return kare
 // insert wala b insertedObj return kare
+
+
+// config ki file banao :- DONE
+// when to connect to db :- DONE STARTING ME HI KRTE HAI >> VERIFIED HAI ..
+//  /invoke/* se start wala part kese lete h .. DONE req.body[0] :-
+// merged params promise na de to acha h :- ERROR HANDLING HO RAHI HAI SAI H
+// query me aai _id ko kese parse kare :- DONE
+//mongo cliecnt connect .. into seprate function:- DONE
+
+
