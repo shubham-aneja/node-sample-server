@@ -1,8 +1,7 @@
-const mongoFind = (db, collectionName, query)=> {
+const mongoFind = (db, collectionName, query,projection,limit)=> {
     return new Promise((resolve, reject)=> {
-
-        db.collection(collectionName).find(query).toArray(function (err, docs) {
-            //console.log('find is executing .. Collection :- '+collectionName+'  and query :- '+JSON.stringify(query,null,' '));
+        limit  = limit || 0;
+        db.collection(collectionName).find(query).project(projection).limit(limit).toArray(function (err, docs) {
             if (err) {
                 reject(err);
             } else {
@@ -12,9 +11,12 @@ const mongoFind = (db, collectionName, query)=> {
         });
     })
 };
-
-
-var findAndModify = function (db, collectionName, query, sort, updates, options, onSuccess) {
+/*
+* findAndModify(db,'temp',{name:'name5'},{name:1},{$set:{name:'nameNew55'}},{new:true}).then((res)=>{
+ console.log('response of find and modify ... ', res);
+ })
+ * */
+var findAndModify = function (db, collectionName, query, sort, updates, options) {
     /*options :{new:true}*/
     /*Options
      w, {Number/String, > -1 || ‘majority’ || tag name} the write concern for the operation where &lt; 1 is no acknowlegement of write and w >= 1, w = ‘majority’ or tag acknowledges the write
@@ -30,12 +32,15 @@ var findAndModify = function (db, collectionName, query, sort, updates, options,
 
      new {Boolean, default:false}, set to true if you want to return the modified object rather than the original. Ignored for remove.
      */
-    db.collection(collectionName).findAndModify(query, sort, updates, options, function (err, result) {
+    return new Promise((resolve , reject )=>{
+
+        db.collection(collectionName).findAndModify(query, sort, updates, options, function (err, result) {
         if (err) {
-            sendError(options.res, err);
+            reject(err);
         } else {
-            onSuccess(result);
+            resolve(result);
         }
+    })
     })
 };
 var mongoRemove = function (db, collectionName, query, removeOptions ) {

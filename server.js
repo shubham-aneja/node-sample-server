@@ -22,8 +22,8 @@ const getMergedParameters = networkUtility.getMergedParameters;
 const sendResponse = networkUtility.sendResponse;
 const sendError = networkUtility.sendError;
 var utility = require('./utility');
-const validateToken = utility.validateToken ;
-const checkUserExistence = utility.checkUserExistence ;
+const validateToken = utility.validateToken;
+const checkUserExistence = utility.checkUserExistence;
 MongoClient.connect('mongodb://' + mongoUrl + '/' + dbName, function (err, db) {
     if (err) {
         console.log('connection to mongo failed ');
@@ -65,7 +65,7 @@ MongoClient.connect('mongodb://' + mongoUrl + '/' + dbName, function (err, db) {
                         throw new Error('Username password did not match');
                     } else {
                         user = docs[0];
-                        return  mongoInsert(db, tokenTable, {user: docs[0]}, {res: res})
+                        return mongoInsert(db, tokenTable, {user: docs[0]}, {res: res})
                     }
                 }).then((result)=> {
                     var responseToReturn = {
@@ -74,7 +74,7 @@ MongoClient.connect('mongodb://' + mongoUrl + '/' + dbName, function (err, db) {
                     responseToReturn.user.token = result.insertedIds[0];
                     sendResponse(res, {data: responseToReturn});
                 }).catch((e)=> {
-                    console.log('Login Error :- ' + e.stack)
+                    console.log('Login Error :- ' + e)
                     sendError(res, e.message)
                 })
         });
@@ -101,7 +101,7 @@ MongoClient.connect('mongodb://' + mongoUrl + '/' + dbName, function (err, db) {
                 }).then(()=> {
                     return sendResponse(res, {message: 'Signup Successfully'});
                 }).catch((e)=> {
-                    console.log('Signup Error :- ' + e.stack)
+                    console.log('Signup Error :- ' + e)
                     sendError(res, e.message)
                 })
 
@@ -118,7 +118,7 @@ MongoClient.connect('mongodb://' + mongoUrl + '/' + dbName, function (err, db) {
                 }).then(()=> {
                     sendResponse(res, {message: 'Successfully logged out'})
                 }).catch((e)=> {
-                    console.log('Error in logout ..' + e.stack);
+                    console.log('Error in logout ..' + e);
                     sendError(res, e.message)
                 })
         });
@@ -126,18 +126,15 @@ MongoClient.connect('mongodb://' + mongoUrl + '/' + dbName, function (err, db) {
 
         app.all('/query', function (req, res) {
             var dataset = undefined;
+            var args = undefined;
             getMergedParameters(req).
                 then((mergedParams)=> {
-                    console.log('in /query call. >> .....mergedParams -- !' + JSON.stringify(mergedParams));
                     dataset = mergedParams.dataset;
-                    // console.log('in /query call. >> .....dataset -- !' , dataset);
-
                     var token = mergedParams.token;
-                    var args = mergedParams.args;
+                    args = mergedParams.args;
                     dataset = dataset && JSON.parse(dataset);
+                    args = args === undefined ? {} : JSON.parse(args);
                     if (token && dataset && dataset.type) {
-                        /*this parsing is error prone*/
-                        // console.log('dataset' + JSON.stringify(dataset));
                         // {dataset,token,args:{limit:5}}
                         var query = {/*from  args.filter */};
                         var limit = {}
@@ -147,12 +144,15 @@ MongoClient.connect('mongodb://' + mongoUrl + '/' + dbName, function (err, db) {
                         throw new Error('Token and dataset and dataset type are mandatory for Query');
                     }
                 }).then(()=> {
-                    console.log('token validation Success');
-                    return mongoFind(db, dataset.type, {});
+                    var query = args.filter;
+                    var projection = args.fields;
+                    var limit = args.limit;
+                    /*{"filter":{"name":"Laptop"},"fields":{"name":1},"limit":1}*/
+                    return mongoFind(db, dataset.type, query, projection, limit);
                 }).then((docs)=> {
                     return sendResponse(res, {data: docs});
                 }).catch((e)=> {
-                    console.log('Error in query call ..' + e.stack);
+                    console.log('Error in query call ..' + e);
                     sendError(res, e.message)
                 })
         });
@@ -164,9 +164,12 @@ MongoClient.connect('mongodb://' + mongoUrl + '/' + dbName, function (err, db) {
 });
 
 
+// query me aai _id ko kese parse kare
+//mongo cliecnt connect .. into seprate function 
+// merged params promise na de to acha h 
 
-
-
-
-
+// update ka function jo return me new object return kare 
 //  /invoke/* se start wala part kese lete h
+// config ki file banao
+// when to connect to db
+// insert wala b insertedObj return kare
