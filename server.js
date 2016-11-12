@@ -4,22 +4,24 @@ var mongoUrl = config.mongoUrl;
 var dbName = config.dbName;
 var usersTable = config.usersTable;
 var tokenTable = config.tokenTable;
+
 var app = require('express')();
 var bodyParser = require('body-parser');
-var methodOverride = require('method-override');
-var assert = require('assert');
 app.use(bodyParser.json()); // support json encoded bodies
 app.use(bodyParser.urlencoded({extended: true})); // support encoded bodies
+
 var mongoUtility = require('./mongoUtility')
 var mongoFind = mongoUtility.mongoFind;
 var mongoRemove = mongoUtility.mongoRemove;
 var mongoInsert = mongoUtility.mongoInsert;
 var getMongoConnection = mongoUtility.getMongoConnection;
 var getObjectId = mongoUtility.getObjectId;
+
 var networkUtility = require('./networkUtility');
 const getMergedParameters = networkUtility.getMergedParameters;
 const sendResponse = networkUtility.sendResponse;
 const sendError = networkUtility.sendError;
+
 var utility = require('./utility');
 const validateToken = utility.validateToken;
 const checkUserExistence = utility.checkUserExistence;
