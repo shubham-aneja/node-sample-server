@@ -15,11 +15,11 @@ const mongoFind = (db, collectionName, query, projection, limit)=> {
     })
 };
 /*
- * findAndModify(db,'temp',{name:'name5'},{name:1},{$set:{name:'nameNew55'}},{new:true}).then((res)=>{
+ * mongoUpdate(db,'temp',{name:'name5'},{name:1},{$set:{name:'nameNew55'}},{new:true}).then((res)=>{
  console.log('response of find and modify ... ', res);
  })
  * */
-var findAndModify = function (db, collectionName, query, sort, updates, options) {
+var mongoUpdate = function (db, collectionName, query, updates, sort, options) {
     /*options :{new:true}*/
     /*Options
      w, {Number/String, > -1 || ‘majority’ || tag name} the write concern for the operation where &lt; 1 is no acknowlegement of write and w >= 1, w = ‘majority’ or tag acknowledges the write
@@ -35,13 +35,23 @@ var findAndModify = function (db, collectionName, query, sort, updates, options)
 
      new {Boolean, default:false}, set to true if you want to return the modified object rather than the original. Ignored for remove.
      */
+    options = options || {};
+    if (!('new' in options)) {
+        options.new = true;
+    }
+    //console.log('Find and modify   query, updates', query, updates);
     return new Promise((resolve, reject)=> {
-
-        db.collection(collectionName).findAndModify(query, sort, updates, options, function (err, result) {
+        db.collection(collectionName).findAndModify(getParsedQuery(query), sort, updates, options, function (err, result) {
             if (err) {
                 reject(err);
             } else {
-                resolve(result);
+                //console.log('Find and modify result .. ',result);
+                /*{
+                 lastErrorObject: { updatedExisting: true, n: 1 },
+                 value: { _id: 5827153738f834fc22d0bfe6, name: 'Jhullu2' },
+                 ok: 1
+                 }*/
+                resolve(result.value);
             }
         })
     })
@@ -77,12 +87,6 @@ var mongoInsert = function (db, collectionName, recordToInsert) {
         })
     })
 };
-var mongoUpdate = function (db, collectionName, query, updates, options, callback) {
-    db.collection(collectionName).update(query, updates, options, callback);
-    // > db.a.update({_id:2},{$set:{name:'b'}})
-    // > db.a.update({_id:2},{$unset:{name:'b'}})
-
-};
 var getParsedQuery = (query)=> {
     var parsedQuery = query || {};
     if ('_id' in parsedQuery) {
@@ -102,8 +106,7 @@ module.exports = {
     getParsedQuery,
     getObjectId,
     mongoFind,
-    findAndModify,
+    mongoUpdate,
     mongoRemove,
-    mongoInsert,
-    mongoUpdate
+    mongoInsert
 };

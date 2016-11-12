@@ -14,6 +14,7 @@ var mongoUtility = require('./mongoUtility');
 var mongoFind = mongoUtility.mongoFind;
 var mongoRemove = mongoUtility.mongoRemove;
 var mongoInsert = mongoUtility.mongoInsert;
+var mongoUpdate = mongoUtility.mongoUpdate;
 var getMongoConnection = mongoUtility.getMongoConnection;
 var getObjectId = mongoUtility.getObjectId;
 
@@ -132,7 +133,40 @@ getMongoConnection(mongoUrl, dbName, function (err, db) {
                     console.log('Insert Error :- ' + e);
                     sendError(res, e.message)
                 })
+        });
 
+        app.all('/update', (req, res) => {
+            //collectionName, query, sort, updates, options
+            var dataset = undefined;
+            var query = undefined;
+            var updates = undefined;
+            var sort = undefined;
+            var options = undefined;
+            getMergedParameters(req)
+                .then((mergedParams)=> {
+                    dataset = mergedParams.dataset;
+                    query = mergedParams.query;
+                    updates = mergedParams.updates;
+                    sort = mergedParams.sort;
+                    options = mergedParams.options;
+                    var token = mergedParams.token;
+                    dataset = dataset && JSON.parse(dataset);
+                    query = query && JSON.parse(query);
+                    updates = updates && JSON.parse(updates);
+                    sort = sort && JSON.parse(sort);
+                    options = options && JSON.parse(options);
+                    if (!token || !dataset || !dataset.type || !query || !updates) {
+                        throw new Error('token , query , updates ,dataset and dataset type are mandatory for update');
+                    }
+                    return validateToken(db, token);
+                }).then(()=> {
+                    return mongoUpdate(db, dataset.type, query,updates,sort,options);
+                }).then((updatedRecords)=> {
+                    return sendResponse(res, {data: updatedRecords});
+                }).catch((e)=> {
+                    console.log('Insert Error :- ' + e);
+                    sendError(res, e.message)
+                })
         });
 
         app.all('/logout', function (req, res) {
@@ -188,11 +222,10 @@ getMongoConnection(mongoUrl, dbName, function (err, db) {
 });
 
 //es 6 is not working .. not import not let not s...
+// find and update .. update multi is not working ..
 
-// update data ka function jo return me new object return kare
-// insert wala b insertedObj return kare
-
-
+// update data ka function jo return me new object return kare :- DONE
+// insert wala b insertedObj return kare :- DONE
 // config ki file banao :- DONE
 // when to connect to db :- DONE STARTING ME HI KRTE HAI >> VERIFIED HAI ..
 //  /invoke/* se start wala part kese lete h .. DONE req.body[0] :-
