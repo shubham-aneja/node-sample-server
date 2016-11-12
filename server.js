@@ -1,16 +1,15 @@
-var serverPort = 5000;
-var mongoUrl = 'localhost:27017';
-// var mongoUrl = 'http://127.0.0.1:27017';/*???*/
-var dbName = 'project';
-
+var config =  require('./config.js');
+var serverPort = config.serverPort;
+var mongoUrl = config.mongoUrl;
+var dbName = config.dbName;
+var usersTable = config.usersTable;
+var tokenTable = config.tokenTable;
 var MongoClient = require('mongodb');
 var ObjectID = MongoClient.ObjectID;
 var app = require('express')();
 var bodyParser = require('body-parser');
 var methodOverride = require('method-override');
 var assert = require('assert');
-var usersTable = 'users';
-var tokenTable = 'Connections';
 app.use(bodyParser.json()); // support json encoded bodies
 app.use(bodyParser.urlencoded({extended: true})); // support encoded bodies
 var mongoUtility = require('./mongoUtility')
@@ -163,7 +162,7 @@ MongoClient.connect('mongodb://' + mongoUrl + '/' + dbName, function (err, db) {
     }
 });
 
-
+//es 6 is not working .. not import not let not s...
 // query me aai _id ko kese parse kare
 //mongo cliecnt connect .. into seprate function 
 // merged params promise na de to acha h 

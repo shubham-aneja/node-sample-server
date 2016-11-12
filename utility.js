@@ -1,9 +1,8 @@
-var usersTable = 'users';
-var tokenTable = 'Connections';
+var config =  require('./config.js');
+var usersTable = config.usersTable;
+var tokenTable = config.tokenTable;
 var MongoClient = require('mongodb');
 var ObjectID = MongoClient.ObjectID;
-
-
 var mongoUtility = require('./mongoUtility')
 var mongoFind = mongoUtility.mongoFind;
 
