@@ -4,8 +4,6 @@ var mongoUrl = config.mongoUrl;
 var dbName = config.dbName;
 var usersTable = config.usersTable;
 var tokenTable = config.tokenTable;
-var MongoClient = require('mongodb');
-var ObjectID = MongoClient.ObjectID;
 var app = require('express')();
 var bodyParser = require('body-parser');
 var methodOverride = require('method-override');
@@ -16,6 +14,8 @@ var mongoUtility = require('./mongoUtility')
 var mongoFind = mongoUtility.mongoFind;
 var mongoRemove = mongoUtility.mongoRemove;
 var mongoInsert = mongoUtility.mongoInsert;
+var getMongoConnection = mongoUtility.getMongoConnection;
+var getObjectId = mongoUtility.getObjectId;
 var networkUtility = require('./networkUtility');
 const getMergedParameters = networkUtility.getMergedParameters;
 const sendResponse = networkUtility.sendResponse;
@@ -23,7 +23,7 @@ const sendError = networkUtility.sendError;
 var utility = require('./utility');
 const validateToken = utility.validateToken;
 const checkUserExistence = utility.checkUserExistence;
-MongoClient.connect('mongodb://' + mongoUrl + '/' + dbName, function (err, db) {
+getMongoConnection(mongoUrl ,dbName, function (err, db) {
     if (err) {
         console.log('connection to mongo failed ');
     } else {
@@ -111,7 +111,7 @@ MongoClient.connect('mongodb://' + mongoUrl + '/' + dbName, function (err, db) {
                 then((mergedParams)=> {
                     console.log('Welcome to logout mergedParams ' + JSON.stringify(mergedParams));
                     var token = mergedParams.token;
-                    var query = {_id: ObjectID(token)};
+                    var query = {_id: getObjectId(token)};
                     var options = {justOne: true};
                     return mongoRemove(db, tokenTable, query, options, {res: res})
                 }).then(()=> {

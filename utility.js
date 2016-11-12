@@ -1,10 +1,9 @@
 var config =  require('./config.js');
 var usersTable = config.usersTable;
 var tokenTable = config.tokenTable;
-var MongoClient = require('mongodb');
-var ObjectID = MongoClient.ObjectID;
 var mongoUtility = require('./mongoUtility')
 var mongoFind = mongoUtility.mongoFind;
+var getObjectId = mongoUtility.getObjectId;
 
 const checkUserExistence = (db, username)=> {
     return new Promise((resolve, reject)=> {
@@ -20,7 +19,7 @@ const checkUserExistence = (db, username)=> {
 };
 const validateToken = (db, token)=> {
     return new Promise((resolve, reject)=> {
-        mongoFind(db, tokenTable, {_id: ObjectID(token)}).then((docs)=> {
+        mongoFind(db, tokenTable, {_id: getObjectId(token)}).then((docs)=> {
             if (docs.length === 1) {
                 resolve({res: 'Token Validated'});
             } else {
