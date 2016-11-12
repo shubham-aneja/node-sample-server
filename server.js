@@ -1,4 +1,4 @@
-var config =  require('./config.js');
+var config = require('./config.js');
 var serverPort = config.serverPort;
 var mongoUrl = config.mongoUrl;
 var dbName = config.dbName;
@@ -10,7 +10,7 @@ var bodyParser = require('body-parser');
 app.use(bodyParser.json()); // support json encoded bodies
 app.use(bodyParser.urlencoded({extended: true})); // support encoded bodies
 
-var mongoUtility = require('./mongoUtility')
+var mongoUtility = require('./mongoUtility');
 var mongoFind = mongoUtility.mongoFind;
 var mongoRemove = mongoUtility.mongoRemove;
 var mongoInsert = mongoUtility.mongoInsert;
@@ -25,7 +25,7 @@ const sendError = networkUtility.sendError;
 var utility = require('./utility');
 const validateToken = utility.validateToken;
 const checkUserExistence = utility.checkUserExistence;
-getMongoConnection(mongoUrl ,dbName, function (err, db) {
+getMongoConnection(mongoUrl, dbName, function (err, db) {
     if (err) {
         console.log('connection to mongo failed ');
     } else {
@@ -71,11 +71,11 @@ getMongoConnection(mongoUrl ,dbName, function (err, db) {
                 }).then((result)=> {
                     var responseToReturn = {
                         user: user
-                    }
-                    responseToReturn.user.token = result.insertedIds[0];
+                    };
+                    responseToReturn.user.token = result._id;
                     sendResponse(res, {data: responseToReturn});
                 }).catch((e)=> {
-                    console.log('Login Error :- ' + e)
+                    console.log('Login Error :- ' + e);
                     sendError(res, e.message)
                 })
         });
@@ -91,7 +91,7 @@ getMongoConnection(mongoUrl ,dbName, function (err, db) {
                     recordToInsert = {
                         username: username,
                         password: password
-                    }
+                    };
                     if (!username || !password) {
                         throw new Error('Username and password are mandatory for Signup');
                     }
@@ -102,7 +102,34 @@ getMongoConnection(mongoUrl ,dbName, function (err, db) {
                 }).then(()=> {
                     return sendResponse(res, {message: 'Signup Successfully'});
                 }).catch((e)=> {
-                    console.log('Signup Error :- ' + e)
+                    console.log('Signup Error :- ' + e);
+                    sendError(res, e.message)
+                })
+
+        });
+
+        app.all('/insert', function (req, res) {
+            var data = undefined;
+            var dataset = undefined;
+            getMergedParameters(req)
+                .then((mergedParams)=> {
+                    //console.log('Welcome to insert Merged params are :- ' + JSON.stringify(mergedParams));
+                    data = mergedParams.data;
+                    dataset = mergedParams.dataset;
+                    var token = mergedParams.token;
+                    data = data && JSON.parse(data);
+                    /*data can be array and Object*/
+                    dataset = dataset && JSON.parse(dataset);
+                    if (!token || !data || !dataset || !dataset.type) {
+                        throw new Error('token , data , dataset and dataset type are mandatory for insert');
+                    }
+                    return validateToken(db, token);
+                }).then(()=> {
+                    return mongoInsert(db, dataset.type, data);
+                }).then((insertedRecords)=> {
+                    return sendResponse(res, {data: insertedRecords});
+                }).catch((e)=> {
+                    console.log('Insert Error :- ' + e);
                     sendError(res, e.message)
                 })
 
@@ -136,10 +163,6 @@ getMongoConnection(mongoUrl ,dbName, function (err, db) {
                     dataset = dataset && JSON.parse(dataset);
                     args = args === undefined ? {} : JSON.parse(args);
                     if (token && dataset && dataset.type) {
-                        // {dataset,token,args:{limit:5}}
-                        var query = {/*from  args.filter */};
-                        var limit = {}
-                        /*parse the aguments  */
                         return validateToken(db, token)
                     } else {
                         throw new Error('Token and dataset and dataset type are mandatory for Query');

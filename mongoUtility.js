@@ -63,7 +63,16 @@ var mongoInsert = function (db, collectionName, recordToInsert) {
             if (err) {
                 reject(err)
             } else {
-                resolve(result)
+                var insertedRecords = result.ops;
+                console.log('insert result.. ', insertedRecords);
+                /*>>>>>>>>>.Insert result
+                 {
+                 result: { ok: 1, n: 1 },
+                 ops: [ { username: 'qss', password: 'q', _id: 58270ffb84cf23aa1f2011fc } ],
+                 insertedCount: 1,
+                 insertedIds: [ 58270ffb84cf23aa1f2011fc ]
+                 }*/
+                resolve(insertedRecords);
             }
         })
     })
@@ -76,7 +85,7 @@ var mongoUpdate = function (db, collectionName, query, updates, options, callbac
 };
 var getParsedQuery = (query)=> {
     var parsedQuery = query || {};
-    if('_id' in parsedQuery ){
+    if ('_id' in parsedQuery) {
         parsedQuery._id = ObjectID(parsedQuery._id);
     }
     return parsedQuery;

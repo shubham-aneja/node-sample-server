@@ -8,7 +8,7 @@ const sendError = (res, errorMessage)=> {
         res.status(400);
         res.end();
     }
-}
+};
 const sendResponse = (res, responseToSend)=> {
     if (res) {
 
