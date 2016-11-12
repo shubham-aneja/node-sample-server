@@ -5,7 +5,7 @@ const sendError = (res, errorMessage)=> {
         var errorObj = typeof errorMessage == 'string' ? {message: errorMessage} : errorMessage;
         console.log('errorObj' + errorObj);
         res.write(JSON.stringify({error: errorObj}));
-        res.status(400);
+        res.status(401);
         res.end();
     }
 };

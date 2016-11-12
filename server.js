@@ -160,7 +160,7 @@ getMongoConnection(mongoUrl, dbName, function (err, db) {
                     }
                     return validateToken(db, token);
                 }).then(()=> {
-                    return mongoUpdate(db, dataset.type, query,updates,sort,options);
+                    return mongoUpdate(db, dataset.type, query, updates, sort, options);
                 }).then((updatedRecords)=> {
                     return sendResponse(res, {data: updatedRecords});
                 }).catch((e)=> {
@@ -220,17 +220,4 @@ getMongoConnection(mongoUrl, dbName, function (err, db) {
         });
     }
 });
-
-//es 6 is not working .. not import not let not s...
-// find and update .. update multi is not working ..
-
-// update data ka function jo return me new object return kare :- DONE
-// insert wala b insertedObj return kare :- DONE
-// config ki file banao :- DONE
-// when to connect to db :- DONE STARTING ME HI KRTE HAI >> VERIFIED HAI ..
-//  /invoke/* se start wala part kese lete h .. DONE req.body[0] :-
-// merged params promise na de to acha h :- ERROR HANDLING HO RAHI HAI SAI H
-// query me aai _id ko kese parse kare :- DONE
-//mongo cliecnt connect .. into seprate function:- DONE
-
 
