@@ -74,7 +74,7 @@ getMongoConnection(mongoUrl, dbName, function (err, db) {
                     var responseToReturn = {
                         user: user
                     };
-                    responseToReturn.user.token = result._id;
+                    responseToReturn.user.token = result[0]._id;
                     sendResponse(res, {data: responseToReturn});
                 }).catch((e)=> {
                     console.log('Login Error :- ' + e);
@@ -204,6 +204,7 @@ getMongoConnection(mongoUrl, dbName, function (err, db) {
                         return validateToken(db, token)
                     } else {
                         throw new Error('Token and dataset and dataset type are mandatory for Query');
+
                     }
                 }).then(()=> {
                     var query = args.filter;
@@ -211,7 +212,7 @@ getMongoConnection(mongoUrl, dbName, function (err, db) {
                     var limit = args.limit;
                     var sort = args.sort;
                     /*{"filter":{"name":"Laptop"},"fields":{"name":1},"limit":1}*/
-                    return mongoFind(db, dataset.type, query, projection, limit,sort);
+                    return mongoFind(db, dataset.type, query, projection, limit, sort);
                 }).then((docs)=> {
                     return sendResponse(res, {data: docs});
                 }).catch((e)=> {
