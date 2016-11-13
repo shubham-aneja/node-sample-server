@@ -26,6 +26,7 @@ const sendError = networkUtility.sendError;
 var utility = require('./utility');
 const validateToken = utility.validateToken;
 const checkUserExistence = utility.checkUserExistence;
+const getParsedObject = utility.getParsedObject;
 getMongoConnection(mongoUrl, dbName, function (err, db) {
     if (err) {
         console.log('connection to mongo failed ');
@@ -118,9 +119,9 @@ getMongoConnection(mongoUrl, dbName, function (err, db) {
                     data = mergedParams.data;
                     dataset = mergedParams.dataset;
                     var token = mergedParams.token;
-                    data = data && JSON.parse(data);
+                    data = getParsedObject(data);
                     /*data can be array and Object*/
-                    dataset = dataset && JSON.parse(dataset);
+                    dataset = getParsedObject(dataset);
                     if (!token || !data || !dataset || !dataset.type) {
                         throw new Error('token , data , dataset and dataset type are mandatory for insert');
                     }
@@ -150,11 +151,11 @@ getMongoConnection(mongoUrl, dbName, function (err, db) {
                     sort = mergedParams.sort;
                     options = mergedParams.options;
                     var token = mergedParams.token;
-                    dataset = dataset && JSON.parse(dataset);
-                    query = query && JSON.parse(query);
-                    updates = updates && JSON.parse(updates);
-                    sort = sort && JSON.parse(sort);
-                    options = options && JSON.parse(options);
+                    dataset = getParsedObject(dataset);
+                    query = getParsedObject(query);
+                    updates = getParsedObject(updates);
+                    sort = getParsedObject(sort);
+                    options = getParsedObject(options);
                     if (!token || !dataset || !dataset.type || !query || !updates) {
                         throw new Error('token , query , updates ,dataset and dataset type are mandatory for update');
                     }
@@ -194,8 +195,11 @@ getMongoConnection(mongoUrl, dbName, function (err, db) {
                     dataset = mergedParams.dataset;
                     var token = mergedParams.token;
                     args = mergedParams.args;
-                    dataset = dataset && JSON.parse(dataset);
-                    args = args === undefined ? {} : JSON.parse(args);
+                    //console.log('dataset and type ',dataset , typeof dataset);
+                    //console.log('args and type ',args , typeof args);
+                    dataset = getParsedObject(dataset);
+                    args = getParsedObject(args) || {};
+
                     if (token && dataset && dataset.type) {
                         return validateToken(db, token)
                     } else {
@@ -205,8 +209,9 @@ getMongoConnection(mongoUrl, dbName, function (err, db) {
                     var query = args.filter;
                     var projection = args.fields;
                     var limit = args.limit;
+                    var sort = args.sort;
                     /*{"filter":{"name":"Laptop"},"fields":{"name":1},"limit":1}*/
-                    return mongoFind(db, dataset.type, query, projection, limit);
+                    return mongoFind(db, dataset.type, query, projection, limit,sort);
                 }).then((docs)=> {
                     return sendResponse(res, {data: docs});
                 }).catch((e)=> {

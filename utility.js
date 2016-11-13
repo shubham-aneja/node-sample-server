@@ -4,6 +4,10 @@ var tokenTable = config.tokenTable;
 var mongoUtility = require('./mongoUtility')
 var mongoFind = mongoUtility.mongoFind;
 var getObjectId = mongoUtility.getObjectId;
+const getParsedObject = (obj)=> {
+    return typeof obj == 'string' ? JSON.parse(obj) : obj;
+};
+
 
 const checkUserExistence = (db, username)=> {
     return new Promise((resolve, reject)=> {
@@ -30,5 +34,6 @@ const validateToken = (db, token)=> {
 };
 module.exports={
     validateToken,
-    checkUserExistence
+    checkUserExistence,
+    getParsedObject
 };
