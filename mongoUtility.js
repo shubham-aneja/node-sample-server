@@ -1,10 +1,11 @@
 var MongoClient = require('mongodb');
 var ObjectID = MongoClient.ObjectID;
 
-const mongoFind = (db, collectionName, query, projection, limit,sort)=> {
+const mongoFind = (db, collectionName, query, projection, limit,sort,skip)=> {
     return new Promise((resolve, reject)=> {
         limit = limit || 0;
-        db.collection(collectionName).find(getParsedQuery(query)).project(projection).sort(sort).limit(limit).toArray(function (err, docs) {
+        skip = skip || 0;
+        db.collection(collectionName).find(getParsedQuery(query)).project(projection).sort(sort).limit(limit).skip(skip).toArray(function (err, docs) {
             if (err) {
                 reject(err);
             } else {

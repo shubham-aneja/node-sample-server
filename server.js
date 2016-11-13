@@ -211,8 +211,9 @@ getMongoConnection(mongoUrl, dbName, function (err, db) {
                     var projection = args.fields;
                     var limit = args.limit;
                     var sort = args.sort;
+                    var skip = args.skip ;
                     /*{"filter":{"name":"Laptop"},"fields":{"name":1},"limit":1}*/
-                    return mongoFind(db, dataset.type, query, projection, limit, sort);
+                    return mongoFind(db, dataset.type, query, projection, limit, sort,skip);
                 }).then((docs)=> {
                     return sendResponse(res, {data: docs});
                 }).catch((e)=> {
