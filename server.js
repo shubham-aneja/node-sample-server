@@ -4,8 +4,8 @@ var mongoUrl = config.mongoUrl;
 var dbName = config.dbName;
 var usersTable = config.usersTable;
 var tokenTable = config.tokenTable;
-
-var app = require('express')();
+var express = require('express');
+var app = express();
 var bodyParser = require('body-parser');
 app.use(bodyParser.json()); // support json encoded bodies
 app.use(bodyParser.urlencoded({extended: true})); // support encoded bodies
@@ -32,6 +32,16 @@ getMongoConnection(mongoUrl, dbName, function (err, db) {
         console.log('connection to mongo failed ');
     } else {
         console.log(' Successfully connected to mongo ');
+
+        app.use(express.static('./shubham/images'));
+
+        /*todo do something before actual code of a url executes*/
+        /*app.use('*',(req,res,next)=>{
+            //sendResponse(res,'TATA ');
+            console.log('sfasfsdf');
+            next();
+        });*/
+
 
         app.all('/', (req, res)=> {
             console.log('A request is received in default url  ');
@@ -220,6 +230,9 @@ getMongoConnection(mongoUrl, dbName, function (err, db) {
                     console.log('Error in query call ..' + e);
                     sendError(res, e.message)
                 })
+        });
+        app.all('*',(req,res)=>{
+            sendResponse(res,'404 Page not found');
         });
 
         app.listen(serverPort, function () {
