@@ -12,6 +12,8 @@ app.use(bodyParser.urlencoded({extended: true})); // support encoded bodies
 
 var mongoUtility = require('./mongoUtility');
 var mongoFind = mongoUtility.mongoFind;
+var uploadFiles = mongoUtility.uploadFiles;
+var downloadFile = mongoUtility.downloadFile;
 var mongoRemove = mongoUtility.mongoRemove;
 var mongoInsert = mongoUtility.mongoInsert;
 var mongoUpdate = mongoUtility.mongoUpdate;
@@ -36,11 +38,10 @@ getMongoConnection(mongoUrl, dbName, function (err, db) {
         app.use(express.static('./shubham/images'));
 
         /*todo do something before actual code of a url executes*/
-        /*app.use('*',(req,res,next)=>{
-            //sendResponse(res,'TATA ');
-            console.log('sfasfsdf');
+        app.use('*', (req, res, next)=> {
+            res.setHeader("Access-Control-Allow-Origin", "*");
             next();
-        });*/
+        });
 
 
         app.all('/', (req, res)=> {
@@ -88,6 +89,54 @@ getMongoConnection(mongoUrl, dbName, function (err, db) {
                     sendResponse(res, {data: responseToReturn});
                 }).catch((e)=> {
                     console.log('Login Error :- ' + e);
+                    sendError(res, e.message)
+                })
+        });
+
+        app.all('/upload', function (req, res) {
+            console.log('uploading files...');
+            var user = undefined;
+            getMergedParameters(req)
+                .then((mergedParams)=> {
+                    console.log('Welcome to upload .....merged params are :-- -- !' + JSON.stringify(mergedParams));
+                    var files = mergedParams.files;
+                    if (!files) {
+                        throw new Error('files are mandatory for upload')
+                    }
+                    files = JSON.parse(files);
+                    files = modifyFiles(files);
+                    console.log("files >>>>>>>.", files);
+                    return uploadFiles(files, db)
+                }).then((result)=> {
+                    var responseToReturn = result;
+                    sendResponse(res, {data: responseToReturn});
+                }).catch((e)=> {
+                    console.log('upload Error :- ' + e.stack);
+                    sendError(res, e.message)
+                })
+        });
+
+        app.all('/download', function (req, res) {
+            console.log('downloading files...');
+            var user = undefined;
+            return getMergedParameters(req)
+                .then((mergedParams)=> {
+                    console.log('Welcome to upload .....merged params are :-- -- !' + JSON.stringify(mergedParams));
+                    var fileKey = mergedParams.fileKey;
+                    if (!fileKey) {
+                        throw new Error('fileKey is mandatory for upload')
+                    }
+
+                    return downloadFile(fileKey, db);
+                }).then((result)=> {
+                    var headers = {};
+                    headers["Access-Control-Allow-Origin"] = "*";
+                    headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS";
+                    headers["Content-Disposition"] = "attachment; Filename=\"" + result.fileName + "\"";
+                    headers["Content-Type"] = result.contentType;
+                    sendResponse(res, result.data, headers, true);
+                }).catch((e)=> {
+                    console.log('download Error :- ' + e.stack);
                     sendError(res, e.message)
                 })
         });
@@ -221,9 +270,9 @@ getMongoConnection(mongoUrl, dbName, function (err, db) {
                     var projection = args.fields;
                     var limit = args.limit;
                     var sort = args.sort;
-                    var skip = args.skip ;
+                    var skip = args.skip;
                     /*{"filter":{"name":"Laptop"},"fields":{"name":1},"limit":1}*/
-                    return mongoFind(db, dataset.type, query, projection, limit, sort,skip);
+                    return mongoFind(db, dataset.type, query, projection, limit, sort, skip);
                 }).then((docs)=> {
                     return sendResponse(res, {data: docs});
                 }).catch((e)=> {
@@ -231,8 +280,8 @@ getMongoConnection(mongoUrl, dbName, function (err, db) {
                     sendError(res, e.message)
                 })
         });
-        app.all('*',(req,res)=>{
-            sendResponse(res,'404 Page not found');
+        app.all('*', (req, res)=> {
+            sendResponse(res, '404 Page not found');
         });
 
         app.listen(serverPort, function () {
@@ -241,3 +290,12 @@ getMongoConnection(mongoUrl, dbName, function (err, db) {
     }
 });
 
+function modifyFiles(data) {
+    return data.map(row=> {
+        var data = row.data;
+        var trimData = data.split(',').pop();
+        var bufData = new Buffer(trimData, "base64");
+        row.data = [bufData];
+        return row;
+    })
+}

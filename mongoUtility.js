@@ -1,7 +1,95 @@
 var MongoClient = require('mongodb');
 var ObjectID = MongoClient.ObjectID;
+var GridStore = require('mongodb').GridStore;
+var Utility = require('./utility');
+var uuid = require('uuid');
 
-const mongoFind = (db, collectionName, query, projection, limit,sort,skip)=> {
+var downloadFile = (fileKey, db) => {
+    if (!fileKey) {
+        throw new Error("fileKey not found ");
+    }
+    return new Promise((resolve, reject)=> {
+        var gridStore = new GridStore(db, fileKey, fileKey, "r");
+        gridStore.open(function (err) {
+            if (err) {
+                reject(err);
+                return;
+            }
+            gridStore.seek(0, 0, function (err) {
+                if (err) {
+                    reject(err);
+                    return;
+                }
+                gridStore.read(function (err, data) {
+                    if (err) {
+                        reject(err);
+                        return;
+                    }
+                    resolve({fileName: gridStore.filename, contentType: gridStore.contentType, data: data});
+                });
+            });
+        });
+
+
+    })
+}
+
+var getUniqueId = ()=> {
+    var id = uuid.v4();
+    return id;
+};
+
+
+var uploadFiles = (files, db) => {
+    var fileKeys = [];
+    //files = JSON.parse(files);
+    return Utility.iterator(files, (index, file) => {
+        file.fileKey = getUniqueId();
+        return uploadFileInMongo(file.filename, file.fileKey, file.data, file.type, db).then(_ => {
+            fileKeys.push({key: file.fileKey, name: file.filename});
+        });
+    }).then(_=>fileKeys);
+}
+
+var uploadFileInMongo = (fileName, fileKey, dataArray, content_type, db) => {
+    return new Promise((resolve, reject)=> {
+        var gridStore = new GridStore(db, fileKey, fileName, "w", {content_type,chunk_size: 1024*4});
+        gridStore.open(function (err) {
+            if (err) {
+                console.log("errro in write>>>", err);
+
+                reject(err);
+                return;
+            }
+            return Utility.iterator(dataArray, (index, buffer) => {
+                return new Promise((res, rej)=> {
+                    gridStore.write(buffer, function (err, result) {
+                        if (err) {
+                            rej(err);
+                        } else {
+                            res(result);
+                        }
+                    });
+                });
+            }).then(_=> {
+                console.log("closing");
+                gridStore.close(function (err) {
+                    if (err) {
+                        console.log("err in closing");
+                        reject(err);
+                    } else {
+                        resolve();
+                    }
+                });
+            }).catch((err)=> {
+                reject(err);
+            })
+        });
+    })
+}
+
+
+const mongoFind = (db, collectionName, query, projection, limit, sort, skip)=> {
     return new Promise((resolve, reject)=> {
         limit = limit || 0;
         skip = skip || 0;
@@ -109,5 +197,7 @@ module.exports = {
     mongoFind,
     mongoUpdate,
     mongoRemove,
-    mongoInsert
+    mongoInsert,
+    uploadFiles,
+    downloadFile
 };

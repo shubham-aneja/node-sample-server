@@ -2,17 +2,21 @@
 const sendError = (res, errorMessage)=> {
     //console.log('Error message in sendError ' + errorMessage);
     if (res) {
-        var errorObj = typeof errorMessage == 'string' ? {message: errorMessage} : errorMessage;
+        var errorObj = typeof errorMessage == 'string'? {message: errorMessage} : errorMessage;
         console.log('errorObj' + errorObj);
         res.write(JSON.stringify({error: errorObj}));
         res.status(401);
         res.end();
     }
 };
-const sendResponse = (res, responseToSend)=> {
+const sendResponse = (res, responseToSend, headers,stringifyDisable)=> {
     if (res) {
-
-        responseToSend = typeof responseToSend == 'string' ? responseToSend : JSON.stringify(responseToSend);
+        if(headers) {
+            res.writeHead(200, headers);
+        }
+        if(!stringifyDisable){
+            responseToSend = typeof responseToSend == 'string' ? responseToSend : JSON.stringify(responseToSend);
+        }
         res.write(responseToSend);
         res.end();
     }
