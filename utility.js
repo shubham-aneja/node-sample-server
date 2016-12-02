@@ -1,9 +1,6 @@
-var config =  require('./config.js');
-var usersTable = config.usersTable;
-var tokenTable = config.tokenTable;
-var mongoUtility = require('./mongoUtility')
-var mongoFind = mongoUtility.mongoFind;
-var getObjectId = mongoUtility.getObjectId;
+import {usersTable ,tokenTable} from './config.js';
+import {mongoFind ,getObjectId} from './mongoUtility';
+
 const getParsedObject = (obj)=> {
     return typeof obj == 'string' ? JSON.parse(obj) : obj;
 };
@@ -71,7 +68,7 @@ var iterator = (array, task) => {
         loop(index);
     })
 }
-module.exports={
+module.exports = {
     validateToken,
     checkUserExistence,
     getParsedObject,

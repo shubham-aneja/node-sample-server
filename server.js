@@ -1,34 +1,15 @@
-var config = require('./config.js');
-var serverPort = config.serverPort;
-var mongoUrl = config.mongoUrl;
-var dbName = config.dbName;
-var usersTable = config.usersTable;
-var tokenTable = config.tokenTable;
+import {serverPort ,mongoUrl ,dbName ,usersTable ,tokenTable } from './config.js';
 var express = require('express');
 var app = express();
 var bodyParser = require('body-parser');
 app.use(bodyParser.json()); // support json encoded bodies
 app.use(bodyParser.urlencoded({extended: true})); // support encoded bodies
 
-var mongoUtility = require('./mongoUtility');
-var mongoFind = mongoUtility.mongoFind;
-var uploadFiles = mongoUtility.uploadFiles;
-var downloadFile = mongoUtility.downloadFile;
-var mongoRemove = mongoUtility.mongoRemove;
-var mongoInsert = mongoUtility.mongoInsert;
-var mongoUpdate = mongoUtility.mongoUpdate;
-var getMongoConnection = mongoUtility.getMongoConnection;
-var getObjectId = mongoUtility.getObjectId;
+import {mongoFind ,uploadFiles ,downloadFile ,mongoRemove ,mongoInsert,getObjectId,getMongoConnection,mongoUpdate} from './mongoUtility';
 
-var networkUtility = require('./networkUtility');
-const getMergedParameters = networkUtility.getMergedParameters;
-const sendResponse = networkUtility.sendResponse;
-const sendError = networkUtility.sendError;
+import {sendError,sendResponse ,getMergedParameters} from './networkUtility';
 
-var utility = require('./utility');
-const validateToken = utility.validateToken;
-const checkUserExistence = utility.checkUserExistence;
-const getParsedObject = utility.getParsedObject;
+import {validateToken ,checkUserExistence ,getParsedObject}from './utility';
 getMongoConnection(mongoUrl, dbName, function (err, db) {
     if (err) {
         console.log('connection to mongo failed ');
@@ -299,3 +280,5 @@ function modifyFiles(data) {
         return row;
     })
 }
+
+

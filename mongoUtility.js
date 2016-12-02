@@ -1,7 +1,6 @@
 var MongoClient = require('mongodb');
 var ObjectID = MongoClient.ObjectID;
 var GridStore = require('mongodb').GridStore;
-var Utility = require('./utility');
 var uuid = require('uuid');
 
 var downloadFile = (fileKey, db) => {
@@ -43,7 +42,7 @@ var getUniqueId = ()=> {
 var uploadFiles = (files, db) => {
     var fileKeys = [];
     //files = JSON.parse(files);
-    return Utility.iterator(files, (index, file) => {
+    return iterator(files, (index, file) => {
         file.fileKey = getUniqueId();
         return uploadFileInMongo(file.filename, file.fileKey, file.data, file.type, db).then(_ => {
             fileKeys.push({key: file.fileKey, name: file.filename});
@@ -61,7 +60,7 @@ var uploadFileInMongo = (fileName, fileKey, dataArray, content_type, db) => {
                 reject(err);
                 return;
             }
-            return Utility.iterator(dataArray, (index, buffer) => {
+            return iterator(dataArray, (index, buffer) => {
                 return new Promise((res, rej)=> {
                     gridStore.write(buffer, function (err, result) {
                         if (err) {
@@ -190,6 +189,44 @@ var getMongoConnection = (mongoUrl, dbName, callBack)=> {
     MongoClient.connect('mongodb://' + mongoUrl + '/' + dbName, callBack)
 };
 
+const iterator = (array, task) => {
+    return new Promise((resolve, reject)=> {
+        var length = array ? array.length : 0;
+        if (length == 0) {
+            resolve();
+            return;
+        }
+        var index = 0;
+        var loop = (index)=> {
+            try {
+                var onResolve = function () {
+                    index = index + 1;
+                    if (index == array.length) {
+                        resolve();
+                    } else {
+                        loop(index);
+                    }
+                }
+                try {
+                    var p = task(index, array[index]);
+                    if (!p) {
+                        onResolve();
+                        return;
+                    }
+                    p.then(onResolve)
+                        .catch(function (err) {
+                            reject(err)
+                        })
+                } catch (e) {
+                    reject(e)
+                }
+            } catch (e) {
+                reject(e)
+            }
+        }
+        loop(index);
+    })
+}
 module.exports = {
     getMongoConnection,
     getParsedQuery,
