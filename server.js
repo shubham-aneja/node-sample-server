@@ -265,8 +265,8 @@ getMongoConnection(mongoUrl, dbName, function (err, db) {
             sendResponse(res, '404 Page not found');
         });
 
-        app.listen(serverPort, function () {
-            console.log(serverPort + ' port is ready to be listen')
+        app.listen(process.env.PORT || serverPort, function () {
+            console.log((process.env.PORT||serverPort) + ' port is ready to be listen')
         });
     }
 });
