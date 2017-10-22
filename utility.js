@@ -20,6 +20,7 @@ const checkUserExistence = (db, username)=> {
 };
 const validateToken = (db, token)=> {
     return new Promise((resolve, reject)=> {
+        resolve({res: 'token validation bypassed for now'})
         mongoFind(db, tokenTable, {_id: getObjectId(token)}).then((docs)=> {
             if (docs.length === 1) {
                 resolve({res: 'Token Validated'});

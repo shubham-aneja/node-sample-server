@@ -1,7 +1,9 @@
 module.exports = {
     serverPort: 5000,
     mongoUrl: 'localhost:27017',
-    dbName: 'project',
+    dbName: 'pocket-manager',
     usersTable: 'users',
-    tokenTable: 'Connections'
+    tokenTable: 'Connections',
+    transactionsTable: 'transactions',
+    accountsTable: 'accounts'
 };
