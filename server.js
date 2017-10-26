@@ -1,6 +1,7 @@
 var express = require('express');
 var app = express();
 var bodyParser = require('body-parser');
+var port = normalizePort(process.env.PORT || '80')
 app.use(bodyParser.json()); // support json encoded bodies
 app.use(bodyParser.urlencoded({extended: true})); // support encoded bodies
 
@@ -26,7 +27,7 @@ app.use(bodyParser.urlencoded({extended: true})); // support encoded bodies
       res.end();
     });
 
-    app.listen(process.env.PORT || 80, function () {
-      console.log((process.env.PORT || 80) + ' port is ready to be listen')
+    app.listen(port, function () {
+      console.log(port + ' port is ready to be listen')
     });
 
