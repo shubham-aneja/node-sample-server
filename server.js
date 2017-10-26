@@ -26,7 +26,7 @@ app.use(bodyParser.urlencoded({extended: true})); // support encoded bodies
       res.end();
     });
 
-    app.listen(process.env.PORT || 5000, function () {
-      console.log((process.env.PORT || 5000) + ' port is ready to be listen')
+    app.listen(process.env.PORT || 80, function () {
+      console.log((process.env.PORT || 80) + ' port is ready to be listen')
     });
 
