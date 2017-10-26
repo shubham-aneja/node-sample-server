@@ -7,20 +7,20 @@ app.use(bodyParser.urlencoded({extended: true})); // support encoded bodies
 
     app.use(express.static('./shubham/images'));
 
-    app.use('*', (req, res, next)=> {
+    app.use('*', function(req, res, next) {
       res.setHeader("Access-Control-Allow-Origin", "*");
       next();
     });
 
 
-    app.all('/', (req, res)=> {
+    app.all('/', function(req, res) {
       console.log('A request is received in default url  ');
 
       res.write("Thanks from connecting us....hurreyyy");
       res.end();
     });
 
-    app.all('/login', (req, res)=> {
+    app.all('/login', function(req, res){
       console.log('A request is received in default url  ');
 
       res.write("Login also works.......hurreyyy");
